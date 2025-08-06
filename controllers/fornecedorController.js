@@ -1,109 +1,93 @@
-const Fornecedor = require('../models/fornecedorModel');
-const Categoria = require('../models/categoriaModel');
+const Fornecedor = require('../models/fornecedor');
+const Categoria = require('../models/categoria');
 
 const fornecedorController = {
-    createFornecedor: (req, res) => {
-        const newFornecedor = {
-            nome: req.body.nome,
-            categoria: req.body.categoria,
-        };
-
-        Fornecedor.create(newFornecedor, (err, fornecedorId) => {
-            if (err) {
-                return res.status(500).json({ error: err });
-            }
-            res.redirect('/fornecedores');
-        });
+    getAllFornecedores: async (req, res) => {
+        try {
+            const fornecedores = await Fornecedor.findAll({
+                include: [{ model: Categoria, attributes: ['nome'] }]
+            });
+            res.render('fornecedores/index', { fornecedores });
+        } catch (err) {
+            res.status(500).json({ error: err });
+        }
     },
 
-    getFornecedorById: (req, res) => {
-        const fornecedorId = req.params.id;
+    renderCreateForm: async (req, res) => {
+        try {
+            const categorias = await Categoria.findAll();
+            res.render('fornecedores/create', { categorias });
+        } catch (err) {
+            res.status(500).json({ error: err });
+        }
+    },
 
-        Fornecedor.findById(fornecedorId, (err, fornecedor) => {
-            if (err) {
-                return res.status(500).json({ error: err });
-            }
+    createFornecedor: async (req, res) => {
+        try {
+            const newFornecedor = {
+                nome: req.body.nome,
+                categoria: req.body.categoria,
+            };
+            await Fornecedor.create(newFornecedor);
+            res.redirect('/fornecedores');
+        } catch (err) {
+            res.status(500).json({ error: err });
+        }
+    },
+
+    getFornecedorById: async (req, res) => {
+        try {
+            const fornecedorId = req.params.id;
+            const fornecedor = await Fornecedor.findByPk(fornecedorId, {
+                include: [{ model: Categoria, attributes: ['nome'] }]
+            });
             if (!fornecedor) {
                 return res.status(404).json({ message: 'Fornecedor not found' });
             }
             res.render('fornecedores/show', { fornecedor });
-        });
-    },
-
-    getAllFornecedores: (req, res) => {
-        const categoria = req.query.categoria || null;
-        if (categoria) {
-            Fornecedor.getAll((err, fornecedores) => {
-                if (err) {
-                    return res.status(500).json({ error: err });
-                }
-                res.render('fornecedores/index', { fornecedores });
-            });
-        } else {
-            // Corrigido: garantir resposta mesmo sem categoria
-            Fornecedor.getAll((err, fornecedores) => {
-                if (err) {
-                    return res.status(500).json({ error: err });
-                }
-                res.render('fornecedores/index', { fornecedores });
-            });
+        } catch (err) {
+            res.status(500).json({ error: err });
         }
     },
 
-    renderCreateForm: (req, res) => {
-       Categoria.getAll((err, categorias) => {
-            if (err) {
-                return res.status(500).json({ error: err });
-            }
-            res.render('fornecedores/create', { categorias });
-        });
-    },
-
-    renderEditForm: (req, res) => {
-        const fornecedorId = req.params.id;
-
-        Fornecedor.findById(fornecedorId, (err, fornecedor) => {
-            if (err) {
-                return res.status(500).json({ error: err });
-            }
+    renderEditForm: async (req, res) => {
+        try {
+            const fornecedorId = req.params.id;
+            const fornecedor = await Fornecedor.findByPk(fornecedorId);
             if (!fornecedor) {
                 return res.status(404).json({ message: 'Fornecedor not found' });
             }
-            // Buscar categorias e renderizar o formulário de edição
-            Categoria.getAll((catErr, categorias) => {
-                if (catErr) {
-                    return res.status(500).json({ error: catErr });
-                }
-                res.render('fornecedores/edit', { fornecedor, categorias });
-            });
-        });
+            const categorias = await Categoria.findAll();
+            res.render('fornecedores/edit', { fornecedor, categorias });
+        } catch (err) {
+            res.status(500).json({ error: err });
+        }
     },
 
-    updateFornecedor: (req, res) => {
-        const fornecedorId = req.params.id;
-        const updatedFornecedor = {
-            nome: req.body.nome,
-            categoria: req.body.categoria,
-        };
-
-        Fornecedor.update(fornecedorId, updatedFornecedor, (err) => {
-            if (err) {
-                return res.status(500).json({ error: err });
-            }
+    updateFornecedor: async (req, res) => {
+        try {
+            const fornecedorId = req.params.id;
+            const updatedFornecedor = {
+                nome: req.body.nome,
+                categoria: req.body.categoria,
+            };
+            await Fornecedor.update(updatedFornecedor, { where: { id: fornecedorId } });
             res.redirect('/fornecedores');
-        });
+        } catch (err) {
+            res.status(500).json({ error: err });
+        }
     },
 
-    deleteFornecedor: (req, res) => {
-        const fornecedorId = req.params.id;
-
-        Fornecedor.delete(fornecedorId, (err) => {
-            if (err) {
-                return res.status(500).json({ error: err });
-            }
+    deleteFornecedor: async (req, res) => {
+        try {
+            const fornecedorId = req.params.id;
+            await Fornecedor.destroy({ where: { id: fornecedorId } });
             res.redirect('/fornecedores');
-        });
-    }
+        } catch (err) {
+            res.status(500).json({ error: err });
+        }
+    },
 };
 
 module.exports = fornecedorController;
+
